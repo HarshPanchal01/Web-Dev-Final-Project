@@ -3,22 +3,22 @@
 Welcome to the **World News Sentiment Map**, a web application built for the CSCI3230U final project. This interactive map displays real-time sentiment (positive, negative, neutral) of recent news from different countries. 
 
 ## Project Overview
-*   **Frontend:** Vue.js (via CDN), D3.js (Map rendering), HTML/CSS with Bulma.
+*   **Frontend:** Vue.js (via Vite), D3.js (Map rendering), HTML/CSS with Bulma.
 *   **Backend:** Node.js, Express.js.
 *   **APIs:** Third-party News API, Sentiment Analysis logic.
 
 ## Project Structure
 ```text
 ├── index.js              # Entry point for the Express backend server
-├── public/               # Frontend files served to the browser
-│   ├── index.html        # Main HTML file
-│   ├── css/              # Custom stylesheets
-│   ├── js/               # Frontend JavaScript (Vue logic, D3 scripts)
-│   ├── assets/           # Images, SVG map, etc.
-│   └── data/             # Static/Mock JSON data files
+├── frontend/             # Vue.js frontend application (built with Vite)
+│   ├── index.html        # Main HTML file for Vite
+│   ├── src/              # Frontend source code (Vue components, D3 logic, CSS)
+│   ├── public/           # Static assets (Images, SVG map, etc.)
+│   └── package.json      # Frontend dependencies
 ├── routes/               # Express API route handlers
 ├── utils/                # Backend utility functions (e.g., Sentiment analysis)
-└── package.json          # Node dependencies and project scripts
+├── middlewares/          # Express middlewares
+└── package.json          # Backend dependencies and concurrently scripts
 ```
 
 ## Getting Started
@@ -31,20 +31,24 @@ Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
    ```bash
    git clone https://github.com/HarshPanchal01/Web-Dev-Final-Project.git
    ```
-2. Navigate into the project directory:
+2. Navigate into the project directory and install backend dependencies:
    ```bash
    cd Web-Dev-Final-Project
-   ```
-3. Install the required Node.js dependencies:
-   ```bash
    npm install
+   ```
+3. Install frontend dependencies:
+   ```bash
+   cd frontend
+   npm install
+   cd ..
    ```
 
 ### Running the Project locally
-We use `nodemon` during development to automatically restart the server when files change.
+We use `concurrently` during development to run both the Express backend and the Vite frontend simultaneously.
 
-To start the server, run:
+To start both servers, run from the root directory:
 ```bash
 npm run dev
 ```
-Then, open your browser and go to `http://localhost:3000` to see the application.
+- The Vite frontend will be available at `http://localhost:5173`.
+- The Express backend API will be available at `http://localhost:3000`.
