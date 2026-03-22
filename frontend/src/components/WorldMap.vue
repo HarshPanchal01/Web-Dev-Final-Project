@@ -46,8 +46,7 @@ onMounted(async () => {
     }
     
     svg.attr('width', '100%')
-       .attr('height', 'auto')
-       .style('max-height', '80vh') // keep it from getting too tall
+       .attr('height', '100%')
        .style('display', 'block')
        .style('margin', '0 auto')
 
@@ -144,12 +143,17 @@ onMounted(async () => {
 
     // Zoom behavior
     zoomBehavior = d3.zoom()
-      .scaleExtent([1, 8])
+      .scaleExtent([0.5, 8])
       .on('zoom', (event) => {
         g.attr('transform', event.transform);
       });
 
     svg.call(zoomBehavior);
+
+    // Initial transform to fit the map in the container
+    // Shift slightly to the right and substantially UP so the bottom isn't cut off.
+    const initialTransform = d3.zoomIdentity.translate(200, 10).scale(0.55);
+    svg.call(zoomBehavior.transform, initialTransform);
 
   } catch (error) {
     console.error("Error loading SVG map or fetching data:", error)
@@ -171,7 +175,8 @@ const handleZoomOut = () => {
 
 const handleReset = () => {
   if (svgSelection && zoomBehavior) {
-    svgSelection.transition().duration(750).call(zoomBehavior.transform, d3.zoomIdentity);
+    const initialTransform = d3.zoomIdentity.translate(200, 10).scale(0.55);
+    svgSelection.transition().duration(750).call(zoomBehavior.transform, initialTransform);
   }
 }
 </script>
@@ -203,6 +208,9 @@ const handleReset = () => {
 
 <style scoped>
 .map-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   padding: 1.5rem;
   background-color: #ffffff;
@@ -210,6 +218,7 @@ const handleReset = () => {
   box-shadow: 0 10px 30px rgba(0,0,0,0.08);
   position: relative;
   overflow: hidden;
+  margin-bottom: 0;
 }
 
 .map-header {
@@ -219,6 +228,7 @@ const handleReset = () => {
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #eee;
+  flex-shrink: 0;
 }
 
 .legend {
@@ -245,7 +255,8 @@ const handleReset = () => {
 
 .world-map {
   width: 100%;
-  /* This prevents panning from dragging the whole page on mobile */
+  flex: 1;
+  min-height: 0; /* allows shrinking in flexbox */
   touch-action: none;
 }
 
