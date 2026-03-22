@@ -1,0 +1,32 @@
+[
+  {
+    "title": "[MOCK] Global Markets Rally on Tech Earnings",
+    "summary": "This is a mock summary for a news article. Tech stocks led a global market rally today following stronger-than-expected earnings reports from major sector players.",
+    "url": "https://example.com/news/1",
+    "image": "https://picsum.photos/400/200?random=1"
+  },
+  {
+    "title": "[MOCK] New Sustainable Energy Policy Announced",
+    "summary": "The government has announced a comprehensive new policy aimed at transitioning to 100% renewable energy by 2050, highlighting investments in solar and wind.",
+    "url": "https://example.com/news/2",
+    "image": "https://picsum.photos/400/200?random=2"
+  },
+  {
+    "title": "[MOCK] Breakthrough in Quantum Computing Achieved",
+    "summary": "Researchers at a leading university have announced a significant breakthrough in quantum computing stability, potentially bringing commercial applications years closer.",
+    "url": "https://example.com/news/3",
+    "image": "https://picsum.photos/400/200?random=3"
+  },
+  {
+    "title": "[MOCK] Local Sports Team Wins Championship",
+    "summary": "In an unexpected turn of events, the underdog local sports team secured the championship title after a nail-biting final match that went into overtime.",
+    "url": "https://example.com/news/4",
+    "image": "https://picsum.photos/400/200?random=4"
+  },
+  {
+    "title": "[MOCK] Space Telescope Captures Stunning New Nebula",
+    "summary": "The newly deployed space telescope has transmitted its first high-resolution images back to Earth, featuring a breathtaking and previously unseen nebula.",
+    "url": "https://example.com/news/5",
+    "image": "https://picsum.photos/400/200?random=5"
+  }
+]
