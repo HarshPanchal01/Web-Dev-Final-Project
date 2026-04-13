@@ -1,54 +1,91 @@
 <script setup>
-import { ref } from 'vue'
-import WorldMap from './components/WorldMap.vue'
-
-const selectedCountry = ref(null)
-const articles = ref([])
-const isLoading = ref(false)
+import { ref, computed } from "vue";
+import WorldMap from "./components/WorldMap.vue";
+const currentView = ref("Global View");
+const darkMode = ref(true);
+const archiveArticles = ref([]);
+const toggleTheme = () => {
+  darkMode.value = !darkMode.value;
+};
+const selectedCountry = ref(null);
+const articles = ref([]);
+const isLoading = ref(false);
 
 const handleCountrySelection = async (countryId) => {
-  console.log('Country selected:', countryId)
-  selectedCountry.value = countryId
-  isLoading.value = true
-  articles.value = []
-  
+  console.log("Country selected:", countryId);
+  selectedCountry.value = countryId;
+  isLoading.value = true;
+  articles.value = [];
+
   try {
-    const res = await fetch(`http://localhost:3000/api/news/${countryId}`)
-    const data = await res.json()
-    articles.value = data.articles || []
+    const res = await fetch(`http://localhost:3000/api/news/${countryId}`);
+    const data = await res.json();
+    articles.value = data.articles || [];
   } catch (err) {
-    console.error("Failed to fetch news:", err)
+    console.error("Failed to fetch news:", err);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 const getSentimentClass = (category) => {
-  if (category === 'Positive') return 'positive-news';
-  if (category === 'Negative') return 'negative-news';
-  return 'neutral-news';
-}
+  if (category === "Positive") return "positive-news";
+  if (category === "Negative") return "negative-news";
+  return "neutral-news";
+};
 
 const getSentimentTagClass = (category) => {
-  if (category === 'Positive') return 'is-success';
-  if (category === 'Negative') return 'is-danger';
-  return 'is-dark';
-}
+  if (category === "Positive") return "is-success";
+  if (category === "Negative") return "is-danger";
+  return "is-dark";
+};
 </script>
 
 <template>
-  <div class="dashboard">
+  <div class="dashboard" :class="{ 'light-theme': !darkMode }">
     <!-- Left Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <h1 class="title is-5 has-text-white mb-0 title-text">World News Sentiment</h1>
+        <h1 class="title is-5 has-text-white mb-0 title-text">
+          World News Sentiment
+        </h1>
+      </div>
+
+      <div class="theme-toggle-wrap">
+        <button class="button is-small theme-toggle-btn" @click="toggleTheme">
+          {{ darkMode ? "Light Mode" : "Dark Mode" }}
+        </button>
       </div>
       <p class="menu-label px-4 mt-5 has-text-grey-light">LIVE INTELLIGENCE</p>
       <ul class="menu-list px-2 mt-2">
-        <li><a class="is-active">Global View</a></li>
-        <li><a>Trending</a></li>
-        <li><a>Sentiment</a></li>
-        <li><a>Archive</a></li>
+        <li>
+          <a
+            :class="{ 'is-active': currentView === 'Global View' }"
+            @click="currentView = 'Global View'"
+            >Global View</a
+          >
+        </li>
+        <li>
+          <a
+            :class="{ 'is-active': currentView === 'Trending' }"
+            @click="currentView = 'Trending'"
+            >Trending</a
+          >
+        </li>
+        <li>
+          <a
+            :class="{ 'is-active': currentView === 'Sentiment' }"
+            @click="currentView = 'Sentiment'"
+            >Sentiment</a
+          >
+        </li>
+        <li>
+          <a
+            :class="{ 'is-active': currentView === 'Archive' }"
+            @click="currentView = 'Archive'"
+            >Archive</a
+          >
+        </li>
       </ul>
     </aside>
 
@@ -66,8 +103,7 @@ const getSentimentTagClass = (category) => {
       </nav>
 
       <!-- Dashboard Grid -->
-      <div class="dashboard-grid">
-        
+      <div v-if="currentView === 'Global View'" class="dashboard-grid">
         <!-- Top Stats (Dummy data to match design) -->
         <div class="stat-cards">
           <div class="stat-card positive">
@@ -76,7 +112,7 @@ const getSentimentTagClass = (category) => {
           </div>
           <div class="stat-card negative">
             <p class="heading">ECONOMIC ALERT</p>
-            <p class="title" style="color: #ff8e8b;">12% Negative</p>
+            <p class="title" style="color: #ff8e8b">12% Negative</p>
           </div>
           <div class="stat-card neutral">
             <p class="heading">NEUTRAL VOLUME</p>
@@ -99,46 +135,165 @@ const getSentimentTagClass = (category) => {
             <div class="news-header">
               <h3 class="title is-5 has-text-white mb-0">Trending Now</h3>
             </div>
-            
+
             <div class="news-feed">
-              <p v-if="!selectedCountry" class="has-text-grey is-size-6 mt-4">Select a country on the map to display its local news.</p>
-              
+              <p v-if="!selectedCountry" class="has-text-grey is-size-6 mt-4">
+                Select a country on the map to display its local news.
+              </p>
+
               <div v-else-if="isLoading" class="has-text-centered mt-6">
-                <div class="loader is-loading mx-auto mb-3" style="width: 3rem; height: 3rem; border-color: #48c774; border-right-color: transparent;"></div>
-                <p class="has-text-primary has-text-weight-bold is-size-7">Fetching local news for {{ selectedCountry }}...</p>
+                <div
+                  class="loader is-loading mx-auto mb-3"
+                  style="
+                    width: 3rem;
+                    height: 3rem;
+                    border-color: #48c774;
+                    border-right-color: transparent;
+                  "
+                ></div>
+                <p class="has-text-primary has-text-weight-bold is-size-7">
+                  Fetching local news for {{ selectedCountry }}...
+                </p>
               </div>
 
-              <div v-else-if="articles.length === 0" class="has-text-centered mt-6">
-                <p class="has-text-grey-light is-size-6">No recent news found for this country.</p>
+              <div
+                v-else-if="articles.length === 0"
+                class="has-text-centered mt-6"
+              >
+                <p class="has-text-grey-light is-size-6">
+                  No recent news found for this country.
+                </p>
               </div>
 
               <TransitionGroup name="list" tag="div" v-else>
-                <a 
-                  v-for="(article, index) in articles" 
+                <a
+                  v-for="(article, index) in articles"
                   :key="index"
-                  :href="article.url" 
-                  target="_blank" 
+                  :href="article.url"
+                  target="_blank"
                   rel="noopener noreferrer"
                   class="news-card-link"
                 >
-                  <div class="news-card" :class="getSentimentClass(article.sentimentCategory)">
-                     <div class="news-meta mb-2">
-                        <span class="has-text-grey-light">NEWS UPDATE</span>
-                        <span class="tag is-light is-pulled-right is-small" :class="getSentimentTagClass(article.sentimentCategory)">
-                          {{ article.sentimentCategory.toUpperCase() }}
-                        </span>
-                     </div>
-                     <h4 class="title is-6 has-text-white mb-2">{{ article.title }}</h4>
-                     <div v-if="article.image" class="card-image mb-2">
-                        <figure class="image is-2by1">
-                          <img :src="article.image" alt="Article image" style="object-fit: cover; border-radius: 4px;">
-                        </figure>
-                     </div>
-                     <p class="has-text-grey-light is-size-7 line-clamp-3">{{ article.summary }}</p>
+                  <div
+                    class="news-card"
+                    :class="getSentimentClass(article.sentimentCategory)"
+                  >
+                    <div class="news-meta mb-2">
+                      <span class="has-text-grey-light">NEWS UPDATE</span>
+                      <span
+                        class="tag is-light is-pulled-right is-small"
+                        :class="getSentimentTagClass(article.sentimentCategory)"
+                      >
+                        {{ article.sentimentCategory.toUpperCase() }}
+                      </span>
+                    </div>
+                    <h4 class="title is-6 has-text-white mb-2">
+                      {{ article.title }}
+                    </h4>
+                    <div v-if="article.image" class="card-image mb-2">
+                      <figure class="image is-2by1">
+                        <img
+                          :src="article.image"
+                          alt="Article image"
+                          style="object-fit: cover; border-radius: 4px"
+                        />
+                      </figure>
+                    </div>
+                    <p class="has-text-grey-light is-size-7 line-clamp-3">
+                      {{ article.summary }}
+                    </p>
                   </div>
                 </a>
               </TransitionGroup>
             </div>
+          </div>
+        </div>
+      </div>
+      <!-- TRENDING PAGE -->
+      <div v-else-if="currentView === 'Trending'" class="page-view">
+        <h2 class="page-title">Trending</h2>
+        <p class="page-subtitle">
+          Top articles for {{ selectedCountry || "the selected country" }}.
+        </p>
+
+        <div v-if="articles.length === 0" class="empty-box">
+          Select a country in Global View first.
+        </div>
+
+        <div v-else class="simple-grid">
+          <div
+            v-for="(article, index) in trendingArticles"
+            :key="index"
+            class="simple-card"
+          >
+            <p class="small-label">{{ selectedCountry }}</p>
+            <h3 class="simple-card-title">{{ article.title }}</h3>
+            <p class="simple-card-text">{{ article.summary }}</p>
+            <span
+              class="tag is-light mt-3"
+              :class="getSentimentTagClass(article.sentimentCategory)"
+            >
+              {{ article.sentimentCategory }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SENTIMENT PAGE -->
+      <div v-else-if="currentView === 'Sentiment'" class="page-view">
+        <h2 class="page-title">Sentiment</h2>
+        <p class="page-subtitle">
+          Sentiment summary for {{ selectedCountry || "the selected country" }}.
+        </p>
+
+        <p style="color: var(--text-muted); margin-top: 8px">
+          Based on the currently loaded articles.
+        </p>
+
+        <div v-if="articles.length === 0" class="empty-box">
+          Select a country in Global View first.
+        </div>
+
+        <div v-else class="sentiment-list">
+          <div class="sentiment-row">
+            <span>Positive</span>
+            <strong>{{ positiveCount }}</strong>
+          </div>
+          <div class="sentiment-row">
+            <span>Negative</span>
+            <strong>{{ negativeCount }}</strong>
+          </div>
+          <div class="sentiment-row">
+            <span>Neutral</span>
+            <strong>{{ neutralCount }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARCHIVE PAGE -->
+      <div v-else-if="currentView === 'Archive'" class="page-view">
+        <h2 class="page-title">Archive</h2>
+        <p class="page-subtitle">Recently loaded articles.</p>
+
+        <div v-if="archiveArticles.length === 0" class="empty-box">
+          Archive will display previously loaded articles once data is available from Global View.
+        </div>
+
+        <div v-else class="simple-grid">
+          <div
+            v-for="(article, index) in archiveArticles"
+            :key="index"
+            class="simple-card"
+          >
+            <p class="small-label">{{ article.country }}</p>
+            <h3 class="simple-card-title">{{ article.title }}</h3>
+            <p class="simple-card-text">{{ article.summary }}</p>
+            <span
+              class="tag is-light mt-3"
+              :class="getSentimentTagClass(article.sentimentCategory)"
+            >
+              {{ article.sentimentCategory }}
+            </span>
           </div>
         </div>
       </div>
@@ -156,8 +311,18 @@ const getSentimentTagClass = (category) => {
   --text-muted: #94a3b8;
   --border-color: #2d3748;
 }
+.light-theme {
+  --bg-dark: #f4f6f8;
+  --bg-panel: #ffffff;
+  --bg-panel-light: #f8fafc;
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --border-color: #d1d5db;
+}
 
-html, body {
+html,
+body,
+#app {
   margin: 0;
   padding: 0;
   background-color: var(--bg-dark);
@@ -184,20 +349,29 @@ html, body {
 }
 
 .sidebar-header {
-  height: 80px;
+  min-height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 1.5rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .title-text {
   text-align: center;
-  line-height: 1.3;
+  line-height: 1.25;
   width: 100%;
+  color: var(--text-main) !important;
+  word-break: break-word;
 }
 
+.theme-toggle-wrap {
+  padding: 0.75rem 1rem 0.5rem 1rem;
+}
+
+.theme-toggle-btn {
+  width: 100%;
+}
 .menu-list a {
   color: var(--text-muted);
   padding: 0.85em 1.5rem;
@@ -210,7 +384,7 @@ html, body {
 }
 
 .menu-list a:hover {
-  background-color: rgba(255,255,255,0.05);
+  background-color: rgba(255, 255, 255, 0.05);
   color: var(--text-main);
 }
 
@@ -248,7 +422,8 @@ html, body {
   transition: color 0.2s;
 }
 
-.nav-links a:hover, .nav-links a.is-active {
+.nav-links a:hover,
+.nav-links a.is-active {
   color: var(--text-main);
 }
 
@@ -277,10 +452,18 @@ html, body {
   border-left: 4px solid var(--border-color);
 }
 
-.stat-card.positive { border-left-color: #48c774; }
-.stat-card.negative { border-left-color: #ff8e8b; }
-.stat-card.neutral { border-left-color: #6c757d; }
-.stat-card.active { border-left-color: #00d1b2; }
+.stat-card.positive {
+  border-left-color: #48c774;
+}
+.stat-card.negative {
+  border-left-color: #ff8e8b;
+}
+.stat-card.neutral {
+  border-left-color: #6c757d;
+}
+.stat-card.active {
+  border-left-color: #00d1b2;
+}
 
 .stat-card .heading {
   color: var(--text-muted);
@@ -354,7 +537,9 @@ html, body {
   padding: 1.25rem;
   margin-bottom: 1rem;
   border-left: 3px solid var(--border-color);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .news-card-link {
@@ -365,17 +550,23 @@ html, body {
 .news-card-link:hover .news-card {
   background-color: #2a3441;
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
-.news-card.positive-news { border-left-color: #48c774; }
-.news-card.negative-news { border-left-color: #ff8e8b; }
-.news-card.neutral-news { border-left-color: #6c757d; }
+.news-card.positive-news {
+  border-left-color: #48c774;
+}
+.news-card.negative-news {
+  border-left-color: #ff8e8b;
+}
+.news-card.neutral-news {
+  border-left-color: #6c757d;
+}
 
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;  
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
@@ -397,5 +588,67 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.page-view {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.page-title {
+  color: var(--text-main);
+  margin-bottom: 0.4rem;
+}
+
+.page-subtitle,
+.small-label,
+.simple-card-text {
+  color: var(--text-muted);
+}
+
+.empty-box {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  padding: 1rem;
+  border-radius: 10px;
+  margin-top: 1rem;
+  color: var(--text-muted);
+}
+
+.simple-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.simple-card {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.simple-card-title {
+  color: var(--text-main);
+  margin: 0.35rem 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.sentiment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.sentiment-row {
+  display: flex;
+  justify-content: space-between;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1rem;
+  color: var(--text-main);
 }
 </style>
