@@ -1,44 +1,81 @@
 <script setup>
 import { ref, computed } from "vue";
 import WorldMap from "./components/WorldMap.vue";
+
+// UI State
 const currentView = ref("Global View");
 const darkMode = ref(true);
 const archiveArticles = ref([]);
+
+// Data State
+const selectedCountry = ref(null);
+const articles = ref([]);
+const summary = ref(null);
+const isLoading = ref(false);
+const error = ref(null);
+
+// Theme toggle
 const toggleTheme = () => {
   darkMode.value = !darkMode.value;
 };
-const selectedCountry = ref(null);
-const articles = ref([]);
-const isLoading = ref(false);
 
+// ✅ FIXED API CALL (matches backend Part 1)
 const handleCountrySelection = async (countryId) => {
-  console.log("Country selected:", countryId);
   selectedCountry.value = countryId;
   isLoading.value = true;
+  error.value = null;
   articles.value = [];
 
   try {
-    const res = await fetch(`http://localhost:3000/api/news/${countryId}`);
+    const res = await fetch(
+      `http://localhost:3001/api/news?country=${countryId}`
+    );
     const data = await res.json();
-    articles.value = data.articles || [];
+
+    if (data.status === "empty") {
+      articles.value = [];
+      summary.value = null;
+    } else {
+      articles.value = data.data.articles;
+      summary.value = data.data.summary;
+
+      // Save to archive
+      archiveArticles.value.unshift(
+        ...articles.value.map(a => ({
+          ...a,
+          country: countryId
+        }))
+      );
+    }
+
   } catch (err) {
     console.error("Failed to fetch news:", err);
+    error.value = "Failed to fetch news";
   } finally {
     isLoading.value = false;
   }
 };
 
-const getSentimentClass = (category) => {
-  if (category === "Positive") return "positive-news";
-  if (category === "Negative") return "negative-news";
+// Sentiment UI helpers
+const getSentimentClass = (sentiment) => {
+  if (sentiment === "positive") return "positive-news";
+  if (sentiment === "negative") return "negative-news";
   return "neutral-news";
 };
 
-const getSentimentTagClass = (category) => {
-  if (category === "Positive") return "is-success";
-  if (category === "Negative") return "is-danger";
+const getSentimentTagClass = (sentiment) => {
+  if (sentiment === "positive") return "is-success";
+  if (sentiment === "negative") return "is-danger";
   return "is-dark";
 };
+
+// ✅ Computed (used in Sentiment page)
+const positiveCount = computed(() => summary.value?.positive || 0);
+const negativeCount = computed(() => summary.value?.negative || 0);
+const neutralCount = computed(() => summary.value?.neutral || 0);
+
+// ✅ Trending logic (simple top 6)
+const trendingArticles = computed(() => articles.value.slice(0, 6));
 </script>
 
 <template>
@@ -176,15 +213,15 @@ const getSentimentTagClass = (category) => {
                 >
                   <div
                     class="news-card"
-                    :class="getSentimentClass(article.sentimentCategory)"
+                    :class="getSentimentClass(article.sentiment)"
                   >
                     <div class="news-meta mb-2">
                       <span class="has-text-grey-light">NEWS UPDATE</span>
                       <span
                         class="tag is-light is-pulled-right is-small"
-                        :class="getSentimentTagClass(article.sentimentCategory)"
+                        :class="getSentimentTagClass(article.sentiment)"
                       >
-                        {{ article.sentimentCategory.toUpperCase() }}
+                        {{ article.sentiment.toUpperCase() }}
                       </span>
                     </div>
                     <h4 class="title is-6 has-text-white mb-2">
@@ -231,9 +268,9 @@ const getSentimentTagClass = (category) => {
             <p class="simple-card-text">{{ article.summary }}</p>
             <span
               class="tag is-light mt-3"
-              :class="getSentimentTagClass(article.sentimentCategory)"
+              :class="getSentimentTagClass(article.sentiment)"
             >
-              {{ article.sentimentCategory }}
+              {{ article.sentiment }}
             </span>
           </div>
         </div>
@@ -290,9 +327,9 @@ const getSentimentTagClass = (category) => {
             <p class="simple-card-text">{{ article.summary }}</p>
             <span
               class="tag is-light mt-3"
-              :class="getSentimentTagClass(article.sentimentCategory)"
+              :class="getSentimentTagClass(article.sentiment)"
             >
-              {{ article.sentimentCategory }}
+              {{ article.sentiment }}
             </span>
           </div>
         </div>
