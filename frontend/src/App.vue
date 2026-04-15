@@ -285,7 +285,10 @@ watch(selectedCategory, async () => {
 
         <div class="content-split">
           <div class="map-area">
-            <WorldMap @countrySelected="handleCountrySelection" />
+            <WorldMap
+              :selectedCategory="selectedCategory"
+              @countrySelected="handleCountrySelection"
+            />
           </div>
 
           <div class="news-area box has-background-black-ter mb-0">
