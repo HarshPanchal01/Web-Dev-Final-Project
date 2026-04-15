@@ -1,166 +1,189 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
-import WorldMap from './components/WorldMap.vue'
+import { ref, computed, watch } from "vue";
+import WorldMap from "./components/WorldMap.vue";
 
-const currentView = ref('Global View')
-const darkMode = ref(true)
-const selectedCountry = ref('')
-const selectedCategory = ref('top')
-const articles = ref([])
-const archiveArticles = ref([])
-const isLoading = ref(false)
-const errorMessage = ref('')
+const currentView = ref("Global View");
+const darkMode = ref(true);
+const archiveArticles = ref([]);
+
+const selectedCountry = ref(null);
+const selectedCategory = ref("technology");
+const articles = ref([]);
+const isLoading = ref(false);
+const error = ref(null);
 
 const categoryOptions = [
-  { label: 'Top', value: 'top' },
-  { label: 'World', value: 'world' },
-  { label: 'Technology', value: 'technology' },
-  { label: 'Business', value: 'business' },
-  { label: 'Sports', value: 'sports' },
-  { label: 'Health', value: 'health' },
-  { label: 'Science', value: 'science' },
-  { label: 'Politics', value: 'politics' },
-  { label: 'Entertainment', value: 'entertainment' },
-]
+  { label: "Technology", value: "technology" },
+  { label: "Sports", value: "sports" },
+  { label: "Business", value: "business" },
+  { label: "Health", value: "health" },
+  { label: "Science", value: "science" },
+];
 
-const regionNames =
-  typeof Intl !== 'undefined' && Intl.DisplayNames
-    ? new Intl.DisplayNames(['en'], { type: 'region' })
-    : null
+const countryNameMap = {
+  us: "United States",
+  ca: "Canada",
+  gb: "United Kingdom",
+  au: "Australia",
+  in: "India",
+  fr: "France",
+  de: "Germany",
+  jp: "Japan",
+  br: "Brazil",
+  za: "South Africa",
+  ru: "Russia",
+  cn: "China",
+  it: "Italy",
+  mx: "Mexico",
+  kr: "South Korea",
+  es: "Spain",
+  id: "Indonesia",
+  sa: "Saudi Arabia",
+  tr: "Turkey",
+  ar: "Argentina",
+};
+
+const toggleTheme = () => {
+  darkMode.value = !darkMode.value;
+};
+
+const handleCountrySelection = async (countryId) => {
+  selectedCountry.value = countryId;
+  isLoading.value = true;
+  error.value = null;
+  articles.value = [];
+
+  try {
+    const res = await fetch(
+      `http://localhost:3000/api/news/${countryId}?category=${selectedCategory.value}`
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to fetch news");
+    }
+
+    articles.value = data.articles || [];
+
+    archiveArticles.value = [
+      ...articles.value.map((a) => ({
+        ...a,
+        country: countryNameMap[countryId] || countryId.toUpperCase(),
+      })),
+      ...archiveArticles.value,
+    ].slice(0, 50);
+  } catch (err) {
+    error.value = err.message || "Failed to fetch news";
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const fetchArticles = async () => {
+  if (!selectedCountry.value) return;
+  await handleCountrySelection(selectedCountry.value);
+};
+
+const selectCategory = async (category) => {
+  selectedCategory.value = category;
+
+  if (selectedCountry.value) {
+    await handleCountrySelection(selectedCountry.value);
+  }
+};
+
+watch(selectedCategory, async (newCategory, oldCategory) => {
+  if (newCategory !== oldCategory && selectedCountry.value) {
+    await handleCountrySelection(selectedCountry.value);
+  }
+});
+
+const getSentimentClass = (c) => {
+  if (c === "Positive") return "positive-news";
+  if (c === "Negative") return "negative-news";
+  return "neutral-news";
+};
+
+const getSentimentTagClass = (c) => {
+  if (c === "Positive") return "is-success";
+  if (c === "Negative") return "is-danger";
+  return "is-dark";
+};
+
+const positiveCount = computed(() =>
+  articles.value.filter((a) => a.sentimentCategory === "Positive").length
+);
+
+const negativeCount = computed(() =>
+  articles.value.filter((a) => a.sentimentCategory === "Negative").length
+);
+
+const neutralCount = computed(() =>
+  articles.value.filter((a) => a.sentimentCategory === "Neutral").length
+);
+
+const trendingArticles = computed(() => articles.value.slice(0, 6));
 
 const displayCountryName = computed(() => {
-  if (!selectedCountry.value) return 'No country selected'
-  const code = selectedCountry.value.toUpperCase()
-  return regionNames?.of(code) || code
-})
+  if (!selectedCountry.value) return "No country selected";
+  return (
+    countryNameMap[selectedCountry.value] ||
+    selectedCountry.value.toUpperCase()
+  );
+});
 
-const positiveCount = computed(
-  () =>
-    articles.value.filter(
-      (article) => article.sentimentCategory === 'Positive',
-    ).length,
-)
+const errorMessage = computed(() => error.value);
 
-const negativeCount = computed(
-  () =>
-    articles.value.filter(
-      (article) => article.sentimentCategory === 'Negative',
-    ).length,
-)
-
-const neutralCount = computed(
-  () =>
-    articles.value.filter((article) => article.sentimentCategory === 'Neutral')
-      .length,
-)
-
-const trendingArticles = computed(() => articles.value.slice(0, 8))
-const latestArchive = computed(() => archiveArticles.value.slice(0, 12))
+const latestArchive = computed(() => archiveArticles.value.slice(0, 12));
 
 const sentimentBreakdown = computed(() => {
-  const total = articles.value.length || 1
+  const total = articles.value.length;
+
+  if (total === 0) {
+    return [
+      {
+        label: "Positive",
+        count: 0,
+        percent: 0,
+        className: "positive-pill",
+      },
+      {
+        label: "Negative",
+        count: 0,
+        percent: 0,
+        className: "negative-pill",
+      },
+      {
+        label: "Neutral",
+        count: 0,
+        percent: 0,
+        className: "neutral-pill",
+      },
+    ];
+  }
 
   return [
     {
-      label: 'Positive',
+      label: "Positive",
       count: positiveCount.value,
       percent: Math.round((positiveCount.value / total) * 100),
-      className: 'positive-pill',
+      className: "positive-pill",
     },
     {
-      label: 'Negative',
+      label: "Negative",
       count: negativeCount.value,
       percent: Math.round((negativeCount.value / total) * 100),
-      className: 'negative-pill',
+      className: "negative-pill",
     },
     {
-      label: 'Neutral',
+      label: "Neutral",
       count: neutralCount.value,
       percent: Math.round((neutralCount.value / total) * 100),
-      className: 'neutral-pill',
+      className: "neutral-pill",
     },
-  ]
-})
-
-const toggleTheme = () => {
-  darkMode.value = !darkMode.value
-}
-
-const getSentimentClass = (category) => {
-  if (category === 'Positive') return 'positive-news'
-  if (category === 'Negative') return 'negative-news'
-  return 'neutral-news'
-}
-
-const getSentimentTagClass = (category) => {
-  if (category === 'Positive') return 'is-success'
-  if (category === 'Negative') return 'is-danger'
-  return 'is-dark'
-}
-
-const addToArchive = (countryCode, nextArticles) => {
-  const stampedArticles = nextArticles.map((article) => ({
-    ...article,
-    country: regionNames?.of(countryCode.toUpperCase()) || countryCode.toUpperCase(),
-    countryCode: countryCode.toUpperCase(),
-    category: selectedCategory.value,
-    loadedAt: new Date().toISOString(),
-  }))
-
-  const existingUrls = new Set(archiveArticles.value.map((article) => article.url))
-  const uniqueNewArticles = stampedArticles.filter(
-    (article) => !existingUrls.has(article.url),
-  )
-
-  archiveArticles.value = [...uniqueNewArticles, ...archiveArticles.value].slice(
-    0,
-    40,
-  )
-}
-
-const fetchArticles = async (countryCode = selectedCountry.value) => {
-  if (!countryCode) return
-
-  isLoading.value = true
-  errorMessage.value = ''
-
-  try {
-    const params = new URLSearchParams()
-    if (selectedCategory.value) {
-      params.set('category', selectedCategory.value)
-    }
-
-    const url = `http://localhost:3000/api/news/${countryCode}?${params.toString()}`
-    const response = await fetch(url)
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to load news articles.')
-    }
-
-    const nextArticles = data.articles || []
-    articles.value = nextArticles
-    addToArchive(countryCode, nextArticles)
-  } catch (error) {
-    articles.value = []
-    errorMessage.value =
-      error.message || 'Something went wrong while loading the feed.'
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const handleCountrySelection = async (countryId) => {
-  selectedCountry.value = countryId
-  currentView.value = 'Global View'
-  await fetchArticles(countryId)
-}
-
-watch(selectedCategory, async () => {
-  if (selectedCountry.value) {
-    await fetchArticles(selectedCountry.value)
-  }
-})
+  ];
+});
 </script>
 
 <template>
@@ -285,7 +308,10 @@ watch(selectedCategory, async () => {
 
         <div class="content-split">
           <div class="map-area">
-            <WorldMap @countrySelected="handleCountrySelection" />
+            <WorldMap
+              :category="selectedCategory"
+              @countrySelected="handleCountrySelection"
+            />
           </div>
 
           <div class="news-area box has-background-black-ter mb-0">
