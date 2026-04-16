@@ -22,6 +22,9 @@ const ALLOWED_CATEGORIES = [
 const SUMMARY_COUNTRIES = [
   'US', 'CA', 'GB', 'AU', 'IN', 'FR', 'DE', 'JP', 'BR', 'ZA',
   'RU', 'CN', 'IT', 'MX', 'KR', 'ES', 'ID', 'SA', 'TR', 'AR',
+  'SE', 'NO', 'FI', 'DK', 'NL', 'BE', 'CH', 'AT', 'PL', 'CZ',
+  'GR', 'PT', 'IE', 'NZ', 'SG', 'MY', 'TH', 'VN', 'PH', 'EG',
+  'NG', 'KE', 'CO', 'CL', 'PE', 'VE', 'UA', 'RO', 'HU', 'IL'
 ];
 
 const SUMMARY_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -126,18 +129,29 @@ async function fetchNewsData(country, category) {
 }
 
 function buildMockSummary(category) {
-  const categoryOffset = category ? category.length : 0;
+  const mockArticles = getMockArticles();
   const summaries = [];
   const sentiments = {};
 
   SUMMARY_COUNTRIES.forEach((countryCode) => {
-    const seed =
-      countryCode.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) +
-      categoryOffset;
+    let countryArticles = mockArticles.filter(a => a.country && a.country.toLowerCase() === countryCode.toLowerCase());
+    if (category) {
+      countryArticles = countryArticles.filter(a => a.category && a.category.toLowerCase() === category.toLowerCase());
+    }
 
-    const normalizedSeed = (seed % 7) - 3;
-    const articleCount = Math.abs(seed % 6) + 2;
-    const averageScore = Number((normalizedSeed * 0.8).toFixed(2));
+    const formattedArticles = countryArticles.map(formatArticle);
+    const articleCount = formattedArticles.length;
+    const averageScore = articleCount
+      ? Number(
+          (
+            formattedArticles.reduce(
+              (sum, article) => sum + article.sentimentScore,
+              0
+            ) / articleCount
+          ).toFixed(2)
+        )
+      : 0;
+
     const sentimentCategory = mapScoreToCategory(averageScore, articleCount);
 
     sentiments[countryCode] = sentimentCategory;
@@ -307,13 +321,17 @@ router.get('/:country', async (req, res) => {
     const useMockData = process.env.USE_MOCK_DATA === 'true';
 
     if (useMockData) {
-      const mockArticles = getMockArticles().map(formatArticle);
+      let mockArticles = getMockArticles().filter(a => a.country && a.country.toLowerCase() === country.toLowerCase());
+      if (category) {
+        mockArticles = mockArticles.filter(a => a.category && a.category.toLowerCase() === category.toLowerCase());
+      }
+      const formattedMockArticles = mockArticles.map(formatArticle);
 
       return res.json({
         success: true,
         source: 'mock',
-        articles: mockArticles,
-        articleCount: mockArticles.length,
+        articles: formattedMockArticles,
+        articleCount: formattedMockArticles.length,
       });
     }
 

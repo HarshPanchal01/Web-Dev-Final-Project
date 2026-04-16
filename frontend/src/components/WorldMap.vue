@@ -10,11 +10,19 @@ const props = defineProps({
   selectedCategory: {
     type: String,
     default: ''
+  },
+  selectedCountry: {
+    type: String,
+    default: ''
+  },
+  categoryOptions: {
+    type: Array,
+    default: () => []
   }
 })
 
 // Define Vue events we can emit to the parent
-const emit = defineEmits(['countrySelected'])
+const emit = defineEmits(['countrySelected', 'updateCategory'])
 
 // Define color scale based on sentiment
 const colorScale = {
@@ -31,7 +39,7 @@ let svgSelection = null
 let zoomBehavior = null
 let mapGroup = null
 let tooltip = null
-let selectedCountryId = null
+let selectedCountryId = props.selectedCountry || null
 let sentimentMap = {}
 let defaultTransform = d3.zoomIdentity
 
@@ -63,7 +71,7 @@ const highlightSelectedCountry = () => {
   if (!mapGroup) return
 
   mapGroup.selectAll('path')
-    .style('stroke', '#ffffff')
+    .style('stroke', 'var(--map-stroke)')
     .style('stroke-width', '0.6px')
     .style('opacity', 1)
 
@@ -72,7 +80,7 @@ const highlightSelectedCountry = () => {
       .filter(function () {
         return (d3.select(this).attr('id') || '').toUpperCase() === selectedCountryId
       })
-      .style('stroke', '#0f172a')
+      .style('stroke', 'var(--map-stroke-selected)')
       .style('stroke-width', '2px')
       .style('opacity', 1)
   }
@@ -193,7 +201,7 @@ onMounted(async () => {
     // Set base style
     g.selectAll('path')
       .style('fill', colorScale.NoData)
-      .style('stroke', '#ffffff')
+      .style('stroke', 'var(--map-stroke)')
       .style('stroke-width', '0.6px')
       // We use CSS transition for smoother hover effects
       .style('transition', 'fill 0.35s ease, filter 0.2s ease, transform 0.2s ease, opacity 0.2s ease')
@@ -314,6 +322,14 @@ watch(
   }
 )
 
+watch(
+  () => props.selectedCountry,
+  (newCountry) => {
+    selectedCountryId = newCountry || null
+    updateMapColors(false)
+  }
+)
+
 onBeforeUnmount(() => {
   if (tooltip) {
     tooltip.remove()
@@ -345,20 +361,28 @@ const handleReset = () => {
 </script>
 
 <template>
-  <div class="map-wrapper box">
+  <div class="map-wrapper">
     <div class="map-header">
       <div class="legend">
         <span class="legend-item"><span class="legend-color" style="background-color: #48c774;"></span> Positive</span>
         <span class="legend-item"><span class="legend-color" style="background-color: #f14668;"></span> Negative</span>
         <span class="legend-item"><span class="legend-color" style="background-color: #a1a1a1;"></span> Neutral</span>
-        <span class="legend-item"><span class="legend-color" style="background-color: #e0e0e0;"></span> No Data</span>
+        <span class="legend-item"><span class="legend-color" style="background-color: var(--map-no-data);"></span> No Data</span>
         <span class="legend-item"><span class="legend-color" style="background-color: #3273dc;"></span> Selected</span>
       </div>
 
       <div class="map-tools">
-        <span v-if="selectedCategory" class="category-badge">
-          Category: {{ selectedCategory }}
-        </span>
+        <div class="select is-small is-rounded is-info mr-2 category-select-wrap">
+          <select :value="selectedCategory" @change="emit('updateCategory', $event.target.value)">
+            <option
+              v-for="option in categoryOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
 
         <div class="zoom-controls buttons has-addons mb-0">
           <button class="button is-small" @click="handleZoomIn" title="Zoom In">
@@ -367,7 +391,7 @@ const handleReset = () => {
           <button class="button is-small" @click="handleZoomOut" title="Zoom Out">
             <strong>-</strong>
           </button>
-          <button class="button is-small is-light" @click="handleReset" title="Reset Map">
+          <button class="button is-small" @click="handleReset" title="Reset Map">
             Reset
           </button>
         </div>
@@ -387,9 +411,9 @@ const handleReset = () => {
   height: 100%;
   min-height: 520px;
   padding: 1.5rem;
-  background-color: #ffffff;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
   position: relative;
   overflow: hidden;
   margin-bottom: 0;
@@ -401,7 +425,7 @@ const handleReset = () => {
   align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
   gap: 1rem;
 }
@@ -418,7 +442,7 @@ const handleReset = () => {
   align-items: center;
   font-size: 0.9rem;
   font-weight: 500;
-  color: #4a4a4a;
+  color: var(--text-main);
 }
 
 .legend-color {
@@ -445,6 +469,16 @@ const handleReset = () => {
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: capitalize;
+}
+
+.zoom-controls .button {
+  background-color: var(--bg-panel-light);
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+.zoom-controls .button:hover {
+  background-color: var(--bg-panel);
 }
 
 .world-map {
@@ -480,4 +514,4 @@ const handleReset = () => {
     min-height: 320px;
   }
 }
-</style>
+</style>le>

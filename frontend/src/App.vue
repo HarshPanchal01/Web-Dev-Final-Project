@@ -97,7 +97,7 @@ const getSentimentClass = (category) => {
 const getSentimentTagClass = (category) => {
   if (category === 'Positive') return 'is-success'
   if (category === 'Negative') return 'is-danger'
-  return 'is-dark'
+  return ''
 }
 
 const addToArchive = (countryCode, nextArticles) => {
@@ -172,19 +172,13 @@ watch(selectedCategory, async () => {
       <div class="sidebar-header">
         <div>
           <p class="eyebrow">WORLD NEWS</p>
-          <h1 class="title is-5 has-text-white mb-0 title-text">
+          <h1 class="title is-5  mb-0 title-text">
             Sentiment Dashboard
           </h1>
         </div>
       </div>
 
-      <div class="theme-toggle-wrap">
-        <button class="button is-small theme-toggle-btn" @click="toggleTheme">
-          {{ darkMode ? 'Switch to Light' : 'Switch to Dark' }}
-        </button>
-      </div>
-
-      <div class="status-card">
+      <div class="status-card" style="margin-top: 1rem;">
         <p class="menu-label mb-2">Active selection</p>
         <p class="status-country">{{ displayCountryName }}</p>
         <p class="status-meta">
@@ -193,7 +187,7 @@ watch(selectedCategory, async () => {
         </p>
       </div>
 
-      <p class="menu-label px-4 mt-5 has-text-grey-light">LIVE INTELLIGENCE</p>
+      <p class="menu-label px-4 mt-5 muted-text">LIVE INTELLIGENCE</p>
       <ul class="menu-list px-2 mt-2">
         <li>
           <a
@@ -232,18 +226,24 @@ watch(selectedCategory, async () => {
 
     <main class="main-content">
       <nav class="top-nav">
-        <div>
-          <p class="top-nav-label">Main UI and feed</p>
-          <h2 class="top-nav-title">{{ displayCountryName }}</h2>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <h2 class="top-nav-title mb-0">{{ displayCountryName }}</h2>
+          <button
+            class="button is-small is-success is-rounded"
+            :disabled="!selectedCountry || isLoading"
+            @click="fetchArticles()"
+          >
+            Refresh feed
+          </button>
         </div>
 
         <div class="top-nav-actions">
           <div
-            v-if="currentView === 'Trending' || currentView === 'Global View'"
+            v-if="currentView === 'Trending'"
             class="select-wrap"
           >
             <label class="select-label">Category</label>
-            <div class="select is-small is-dark">
+            <div class="select is-small ">
               <select v-model="selectedCategory">
                 <option
                   v-for="option in categoryOptions"
@@ -257,11 +257,23 @@ watch(selectedCategory, async () => {
           </div>
 
           <button
-            class="button is-small is-success is-light"
-            :disabled="!selectedCountry || isLoading"
-            @click="fetchArticles()"
+            class="theme-toggle-icon"
+            @click="toggleTheme"
           >
-            Refresh feed
+            <svg v-if="darkMode" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
           </button>
         </div>
       </nav>
@@ -290,14 +302,17 @@ watch(selectedCategory, async () => {
           <div class="map-area">
             <WorldMap
               :selectedCategory="selectedCategory"
+              :selectedCountry="selectedCountry"
+              :categoryOptions="categoryOptions"
               @countrySelected="handleCountrySelection"
+              @updateCategory="selectedCategory = $event"
             />
           </div>
 
-          <div class="news-area box has-background-black-ter mb-0">
+          <div class="news-area box  mb-0">
             <div class="news-header">
               <div>
-                <h3 class="title is-5 has-text-white mb-1">Live Feed</h3>
+                <h3 class="title is-5  mb-1">Live Feed</h3>
                 <p class="news-subtitle">
                   {{
                     selectedCountry
@@ -353,7 +368,7 @@ watch(selectedCategory, async () => {
                       </span>
                     </div>
 
-                    <h4 class="title is-6 has-text-white mb-2">
+                    <h4 class="title is-6  mb-2">
                       {{ article.title }}
                     </h4>
 
@@ -367,7 +382,7 @@ watch(selectedCategory, async () => {
                       </figure>
                     </div>
 
-                    <p class="has-text-grey-light is-size-7 line-clamp-3">
+                    <p class="muted-text is-size-7 line-clamp-3">
                       {{ article.summary }}
                     </p>
                   </div>
@@ -389,7 +404,7 @@ watch(selectedCategory, async () => {
           </div>
 
           <div class="page-controls">
-            <div class="select is-small is-dark">
+            <div class="select is-small ">
               <select v-model="selectedCategory">
                 <option
                   v-for="option in categoryOptions"
@@ -524,6 +539,9 @@ watch(selectedCategory, async () => {
   --text-muted: #94a3b8;
   --border-color: #2d3748;
   --accent: #48c774;
+  --map-no-data: #334155;
+  --map-stroke: #1e293b;
+  --map-stroke-selected: #f8fafc;
 }
 
 .light-theme {
@@ -533,6 +551,9 @@ watch(selectedCategory, async () => {
   --text-main: #1f2937;
   --text-muted: #6b7280;
   --border-color: #d1d5db;
+  --map-no-data: #e0e0e0;
+  --map-stroke: #ffffff;
+  --map-stroke-selected: #0f172a;
 }
 
 html,
@@ -544,6 +565,21 @@ body,
   color: var(--text-main);
   height: 100vh;
   overflow: hidden;
+}
+
+/* Global Bulma Overrides for dynamic themes */
+.title, .subtitle, h1, h2, h3, h4, h5, h6, strong, b {
+  color: var(--text-main) !important;
+}
+
+.select select {
+  background-color: var(--bg-panel-light) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-main) !important;
+}
+
+.select:not(.is-multiple):not(.is-loading)::after {
+  border-color: var(--text-muted) !important;
 }
 
 .dashboard {
@@ -647,7 +683,7 @@ body,
 }
 
 .top-nav {
-  min-height: 76px;
+  min-height: 60px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -673,9 +709,24 @@ body,
 .top-nav-actions,
 .page-controls {
   display: flex;
-  align-items: end;
+  align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.theme-toggle-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+.theme-toggle-icon:hover {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .select-wrap {
