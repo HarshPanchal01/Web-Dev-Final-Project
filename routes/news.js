@@ -25,6 +25,10 @@ const SUMMARY_COUNTRIES = [
 ];
 
 const SUMMARY_CACHE_TTL_MS = 10 * 60 * 1000;
+const SUMMARY_CONCURRENCY_LIMIT = 4;
+const BATCH_DELAY_MS = 400;
+const FETCH_TIMEOUT_MS = 8000;
+
 const summaryCache = new Map();
 
 function validateCategory(category) {
@@ -45,6 +49,10 @@ function getMockArticles() {
   return JSON.parse(fs.readFileSync(mockDataPath, 'utf8'));
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function mapScoreToCategory(score, articleCount = 0) {
   if (articleCount < 3) return 'InsufficientData';
   if (score > 1) return 'Positive';
@@ -59,6 +67,7 @@ function formatArticle(article) {
     article.content ||
     article.summary ||
     'No summary available.';
+
   const textToAnalyze = `${title} ${summary}`.trim();
   const sentimentResult = analyzeSentiment(textToAnalyze);
 
@@ -88,16 +97,32 @@ async function fetchNewsData(country, category) {
     url.searchParams.set('category', category);
   }
 
-  console.log(`[news] fetching live news for country=${country} category=${category || 'all'}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-  const response = await fetch(url);
-  const data = await response.json();
+  try {
+    console.log(`[news] fetching live news for country=${country} category=${category || 'all'}`);
 
-  if (!response.ok || data.status === 'error') {
-    throw new Error(data.results?.message || data.message || 'Failed to fetch news from NewsData.io.');
+    const response = await fetch(url, { signal: controller.signal });
+    const data = await response.json();
+
+    if (!response.ok || data.status === 'error') {
+      throw new Error(
+        data.results?.message ||
+        data.message ||
+        `Failed to fetch news from NewsData.io for ${country}.`
+      );
+    }
+
+    return data.results || [];
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timed out for ${country}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return data.results || [];
 }
 
 function buildMockSummary(category) {
@@ -111,7 +136,6 @@ function buildMockSummary(category) {
       categoryOffset;
 
     const normalizedSeed = (seed % 7) - 3;
-
     const articleCount = Math.abs(seed % 6) + 2;
     const averageScore = Number((normalizedSeed * 0.8).toFixed(2));
     const sentimentCategory = mapScoreToCategory(averageScore, articleCount);
@@ -129,55 +153,74 @@ function buildMockSummary(category) {
 }
 
 async function buildLiveSummary(category) {
-  const results = await Promise.allSettled(
-    SUMMARY_COUNTRIES.map(async (countryCode) => {
-      const rawArticles = await fetchNewsData(countryCode, category);
-      const formattedArticles = rawArticles.slice(0, 8).map(formatArticle);
-
-      const articleCount = formattedArticles.length;
-      const averageScore = articleCount
-        ? Number(
-            (
-              formattedArticles.reduce(
-                (sum, article) => sum + article.sentimentScore,
-                0,
-              ) / articleCount
-            ).toFixed(2),
-          )
-        : 0;
-
-      return {
-        countryCode,
-        sentimentCategory: mapScoreToCategory(averageScore, articleCount),
-        averageScore,
-        articleCount,
-      };
-    }),
-  );
-
   const summaries = [];
   const sentiments = {};
 
-  results.forEach((result, index) => {
-    const countryCode = SUMMARY_COUNTRIES[index];
+  console.log(
+    `[news] building live summary for ${SUMMARY_COUNTRIES.length} countries ` +
+    `with concurrency limit ${SUMMARY_CONCURRENCY_LIMIT}`
+  );
 
-    if (result.status === 'fulfilled') {
-      summaries.push(result.value);
-      sentiments[countryCode] = result.value.sentimentCategory;
-    } else {
-      console.error(`Summary fetch failed for ${countryCode}:`, result.reason?.message || result.reason);
+  for (let i = 0; i < SUMMARY_COUNTRIES.length; i += SUMMARY_CONCURRENCY_LIMIT) {
+    const batch = SUMMARY_COUNTRIES.slice(i, i + SUMMARY_CONCURRENCY_LIMIT);
 
-      const fallback = {
-        countryCode,
-        sentimentCategory: 'InsufficientData',
-        averageScore: 0,
-        articleCount: 0,
-      };
+    console.log(`[news] processing batch: ${batch.join(', ')}`);
 
-      summaries.push(fallback);
-      sentiments[countryCode] = fallback.sentimentCategory;
+    const results = await Promise.allSettled(
+      batch.map(async (countryCode) => {
+        const rawArticles = await fetchNewsData(countryCode, category);
+        const formattedArticles = rawArticles.slice(0, 8).map(formatArticle);
+
+        const articleCount = formattedArticles.length;
+        const averageScore = articleCount
+          ? Number(
+              (
+                formattedArticles.reduce(
+                  (sum, article) => sum + article.sentimentScore,
+                  0
+                ) / articleCount
+              ).toFixed(2)
+            )
+          : 0;
+
+        return {
+          countryCode,
+          sentimentCategory: mapScoreToCategory(averageScore, articleCount),
+          averageScore,
+          articleCount,
+        };
+      })
+    );
+
+    results.forEach((result, index) => {
+      const countryCode = batch[index];
+
+      if (result.status === 'fulfilled') {
+        summaries.push(result.value);
+        sentiments[countryCode] = result.value.sentimentCategory;
+      } else {
+        console.error(
+          `Summary fetch failed for ${countryCode}:`,
+          result.reason?.message || result.reason
+        );
+
+        const fallback = {
+          countryCode,
+          sentimentCategory: 'InsufficientData',
+          averageScore: 0,
+          articleCount: 0,
+        };
+
+        summaries.push(fallback);
+        sentiments[countryCode] = fallback.sentimentCategory;
+      }
+    });
+
+    const hasMoreBatches = i + SUMMARY_CONCURRENCY_LIMIT < SUMMARY_COUNTRIES.length;
+    if (hasMoreBatches) {
+      await sleep(BATCH_DELAY_MS);
     }
-  });
+  }
 
   return { summaries, sentiments };
 }
@@ -210,6 +253,13 @@ router.get('/summary', async (req, res) => {
     }
 
     const useMockData = process.env.USE_MOCK_DATA === 'true';
+
+    console.log('[news] summary route hit', {
+      category,
+      useMockData,
+      countryCount: SUMMARY_COUNTRIES.length,
+    });
+
     const summaryResult = useMockData
       ? buildMockSummary(category)
       : await buildLiveSummary(category);
