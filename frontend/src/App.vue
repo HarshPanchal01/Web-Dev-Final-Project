@@ -2,6 +2,8 @@
 import { computed, ref, watch } from 'vue'
 import WorldMap from './components/WorldMap.vue'
 
+const API_BASE = import.meta.env.VITE_API_BASE || ''
+
 const currentView = ref('Global View')
 const darkMode = ref(true)
 const selectedCountry = ref('')
@@ -130,7 +132,8 @@ const fetchArticles = async (countryCode = selectedCountry.value) => {
       params.set('category', selectedCategory.value)
     }
 
-    const url = `http://localhost:3000/api/news/${countryCode}?${params.toString()}`
+    const queryString = params.toString()
+    const url = `${API_BASE}/api/news/${countryCode}${queryString ? `?${queryString}` : ''}`
     const response = await fetch(url)
     const data = await response.json()
 
