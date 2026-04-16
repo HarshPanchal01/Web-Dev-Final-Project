@@ -2,6 +2,7 @@
 import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import * as d3 from 'd3'
 
+const API_BASE = import.meta.env.VITE_API_BASE || ''
 const mapContainer = ref(null)
 
 // Define Vue props
@@ -20,6 +21,7 @@ const colorScale = {
   Positive: '#48c774', // Bulma success (green)
   Negative: '#f14668', // Bulma danger (red)
   Neutral: '#a1a1a1',  // Grey
+  InsufficientData: '#d3d3d3',
   NoData: '#e0e0e0',   // Light grey for empty
   Selected: '#3273dc'  // Blue for selected country
 }
@@ -34,7 +36,7 @@ let sentimentMap = {}
 let defaultTransform = d3.zoomIdentity
 
 const buildSummaryUrl = () => {
-  const baseUrl = 'http://localhost:3000/api/news/summary'
+  const baseUrl = `${API_BASE}/api/news/summary`
   if (props.selectedCategory && props.selectedCategory.trim() !== '') {
     return `${baseUrl}?category=${encodeURIComponent(props.selectedCategory)}`
   }
@@ -229,9 +231,16 @@ onMounted(async () => {
         // Get country name from aria-label or id
         const countryName = getCountryName(this)
         const countryId = (d3.select(this).attr('id') || '').toUpperCase()
-        const sentimentLabel = selectedCountryId === countryId
+        const rawLabel = selectedCountryId === countryId
           ? 'Selected'
-          : (sentimentMap[countryId] || 'NoData').replace('NoData', 'No Data')
+          : (sentimentMap[countryId] || 'NoData')
+
+        const sentimentLabel =
+          rawLabel === 'NoData'
+            ? 'No Data'
+            : rawLabel === 'InsufficientData'
+              ? 'Insufficient Data'
+              : rawLabel
 
         tooltip
           .transition()
