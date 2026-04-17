@@ -238,24 +238,6 @@ watch(selectedCategory, async () => {
         </div>
 
         <div class="top-nav-actions">
-          <div
-            v-if="currentView === 'Trending'"
-            class="select-wrap"
-          >
-            <label class="select-label">Category</label>
-            <div class="select is-small ">
-              <select v-model="selectedCategory">
-                <option
-                  v-for="option in categoryOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-          </div>
-
           <button
             class="theme-toggle-icon"
             @click="toggleTheme"
@@ -394,35 +376,27 @@ watch(selectedCategory, async () => {
       </div>
 
       <div v-else-if="currentView === 'Trending'" class="page-view">
-        <div class="page-header-row">
-          <div>
-            <h2 class="page-title">Trending</h2>
-            <p class="page-subtitle">
-              Top headlines for {{ displayCountryName }} in
-              {{ selectedCategory }}.
-            </p>
-          </div>
+        <div class="page-header-row" style="position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+          <h2 class="page-title">Trending</h2>
+          <p class="page-subtitle">
+            Discover the latest headlines in {{ displayCountryName }}.
+          </p>
 
-          <div class="page-controls">
-            <div class="select is-small ">
-              <select v-model="selectedCategory">
-                <option
-                  v-for="option in categoryOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
+          <div class="page-controls" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%);">
+            <div class="select-wrap">
+              <label class="select-label">Change Category</label>
+              <div class="select is-small">
+                <select v-model="selectedCategory">
+                  <option
+                    v-for="option in categoryOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
             </div>
-
-            <button
-              class="button is-small is-success is-light"
-              :disabled="!selectedCountry || isLoading"
-              @click="fetchArticles()"
-            >
-              Refresh
-            </button>
           </div>
         </div>
 
@@ -465,8 +439,10 @@ watch(selectedCategory, async () => {
       </div>
 
       <div v-else-if="currentView === 'Sentiment'" class="page-view">
-        <h2 class="page-title">Sentiment</h2>
-        <p class="page-subtitle">Breakdown based on the currently loaded feed.</p>
+        <div class="page-header-row" style="display: flex; flex-direction: column; align-items: center; text-align: center; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+          <h2 class="page-title">Sentiment</h2>
+          <p class="page-subtitle">Breakdown based on the currently loaded feed.</p>
+        </div>
 
         <div v-if="!selectedCountry" class="empty-box">
           Select a country in Global View to generate the sentiment summary.
@@ -489,8 +465,10 @@ watch(selectedCategory, async () => {
       </div>
 
       <div v-else-if="currentView === 'Archive'" class="page-view">
-        <h2 class="page-title">Archive</h2>
-        <p class="page-subtitle">Previously loaded stories from all map selections.</p>
+        <div class="page-header-row" style="display: flex; flex-direction: column; align-items: center; text-align: center; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+          <h2 class="page-title">Archive</h2>
+          <p class="page-subtitle">Previously loaded stories from all map selections.</p>
+        </div>
 
         <div v-if="latestArchive.length === 0" class="empty-box">
           Your archive will fill up as you load countries from the Global View.
